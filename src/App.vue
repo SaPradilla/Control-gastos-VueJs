@@ -1,9 +1,10 @@
 <script setup>
-  import {ref,reactive,watch} from 'vue'
+  import {ref,reactive,watch,computed,onMounted} from 'vue'
   // Componentes 
   import Presupuesto from './components/Presupuesto.vue';    
   import ControlPresupuesto from './components/ControlPresupuesto.vue';
   import Modal from './components/Modal.vue'
+  import Filtros from './components/Filtros.vue'
   import Gasto  from './components/Gasto.vue'
 
   import {generarId} from './helpers'
@@ -27,6 +28,7 @@
   const presupuesto = ref(0)
   const disponible = ref(0)
   const gastado = ref(0)
+  const filtro = ref('')
 
   watch(gastos, () =>{
     const totalGastado = gastos.value.reduce((total,gasto) => gasto.cantidad + total,0)
@@ -36,6 +38,25 @@
     deep:true
   }
   )
+  // Cuando el modal se cierre reinicia el objecto
+  watch(modal, ()=>{
+    if(!modal.mostrar){
+      reiniciarStateGasto()
+    }
+  },{
+    deep:true
+  })
+
+  watch(presupuesto, ()=>{
+    localStorage.setItem('presupuesto', presupuesto.value)
+  })
+
+  onMounted(()=>{
+    const presupuestoStorage = localStorage.getItem('presupuesto')
+    if(presupuestoStorage){
+      presupuesto.value = Number(presupuestoStorage)
+    }
+  })
 
   // Funciones
   const definirPresupuesto = (cantidad) =>{
@@ -51,19 +72,34 @@
   }
 
   const ocultarModal = ()=>{
+
     modal.animar = false
     setTimeout(() => {
       modal.mostrar = false
     }, 300);
   }
   const guardarGasto = ()=>{
-    gastos.value.push({
-      // Guarda una copia de gasto y lo extre de gasto reactive
-      ...gasto,
-      id:generarId()
-    })
+    // Si hay un id estamos editando
+    if(gasto.id){
+      // Editando
+      const {id} = gasto
+      // posicion en el arreglo
+      const i = gastos.value.findIndex((gasto => gasto.id === id))
+      // ...gastos quiere decir que traera una copia del gasto esto para que no se triga la reactividad
+      gastos.value[i] = {...gasto}
+    }else{
+      // Registro nuevo
+      gastos.value.push({
+        // Guarda una copia de gasto y lo extre de gasto reactive
+        ...gasto,
+        id:generarId()
+      })
+    }
     ocultarModal()
     // Reiniciar el obejecto del formulario cuando se cierra
+    reiniciarStateGasto()
+  }
+  const reiniciarStateGasto = ()=>{
     Object.assign(gasto,{
       nombre: '',
       cantidad: '',
@@ -72,9 +108,27 @@
       fecha: Date.now()
     })
   }
-  const seleccionarGasto = id=>{
-    // 134 ---
+
+  const seleccionarGasto = id =>{
+    const gastoEditar = gastos.value.filter(gasto => gasto.id == id)[0]
+    Object.assign(gasto, gastoEditar)
+    mostrarModal()
+    
   }
+  const eliminarGasto = () =>{
+    if(confirm('Eliminar?')){
+
+      // Si la condición se cumple devuelve un [] y se reasigna
+      gastos.value = gastos.value.filter(gastoState => gastoState.id != gasto.id)
+      ocultarModal()
+    }
+  }
+  const gastosFiltrados = computed(()=>{
+    if(filtro.value){
+      return gastos.value.filter(gasto => gasto.categoria === filtro.value)
+    }
+    return gastos.value
+  })
 </script>
 
 <template>
@@ -101,12 +155,18 @@
     </header>
 
     <main v-if="presupuesto > 0">
+      <!-- Componente #3 -->
+
+      <Filtros
+      v-model:filtro="filtro"
+      />
 
       <div class="listado-gastos contenedor">
-        <h2>{{ gastos.length > 0 ? 'Gastos':'No hay gastos' }}</h2>
-
+        <h2>{{ gastosFiltrados.length > 0 ? 'Gastos':'No hay gastos' }}</h2>
+        <!-- Componente #4 -->
+          <!-- Intera en el arreglo de objectos GastosFiltrados -->
         <Gasto
-          v-for="gasto in gastos"
+          v-for="gasto in gastosFiltrados"
           :key="gasto.id"
           :gasto="gasto"
           @seleccionar-gasto="seleccionarGasto"
@@ -128,8 +188,10 @@
       
       @ocultarModal="ocultarModal"
       @guardarGasto="guardarGasto"
+      @eliminar-gasto="eliminarGasto"
       :modal="modal"
       :disponible="disponible"
+      :id="gasto.id"
       v-model:nombre="gasto.nombre"
       v-model:categoria="gasto.categoria"
       v-model:cantidad="gasto.cantidad"

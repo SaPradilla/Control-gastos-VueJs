@@ -5,7 +5,7 @@
 
     const error = ref('')
 
-    const emit = defineEmits(['ocultarModal','guardarGasto','update:nombre','update:cantidad','update:categoria'])
+    const emit = defineEmits(['ocultarModal','guardarGasto','update:nombre','update:cantidad','update:categoria','eliminar-gasto'])
     
     const props = defineProps({
         modal:{
@@ -27,12 +27,19 @@
         disponible:{
             type:Number,
             required:true
+        },
+        id:{
+            type:[String,null],
+            required:true
         }
     })
 
+    // cantidad anteriormente gastada
+    const old = props.cantidad
+
     const agregarGasto = ()=>{
         // validar que todos los campos tengan algo
-        const {cantidad,categoria,nombre,disponible} = props
+        const {cantidad,categoria,nombre,disponible,id} = props
         if([cantidad,categoria,nombre].includes('')){
             error.value = 'Todos los campos son obligatorios'
         
@@ -51,12 +58,27 @@
             return
         }
         // Validar un consumista xdd
-        if (cantidad > disponible ){
-            error.value = 'Has excedido el Prespuesto'
-            setTimeout(() =>{
-                error.value = ''
-            },3000)
-            return
+        // es un gasto editado
+        if(id){
+            // Tomar en cuenta el gasto ya realizado
+            if(cantidad > old + disponible){
+                
+                error.value = 'Has excedido el Prespuesto'
+                setTimeout(() =>{
+                    error.value = ''
+                },3000)
+                return
+            
+            }
+        }else{
+
+            if (cantidad > disponible ){
+                error.value = 'Has excedido el Prespuesto'
+                setTimeout(() =>{
+                    error.value = ''
+                },3000)
+                return
+            }
         }
 
         emit('guardarGasto')
@@ -87,7 +109,7 @@
 
                 <Alerta v-if="error">{{ error }}</Alerta>
 
-                <legend>Añadir Gasto</legend>
+                <legend>{{ props.id ? 'Editar Gato'  : 'Añadir gasto' }}</legend>
                 <!-- Nombre -->
                 <div class="campo">
                     <label for="nombre">Nombre Gasto:</label>
@@ -133,9 +155,17 @@
                 </div>
                 <input 
                 type="submit" 
-                value="Añadir Gasto"
+                :value="[props.id ? 'Guardar Cambios' : 'Añadir Gasto']"
                 >
             </form>
+            <button
+            type="button"
+            class="btn-eliminar"
+            v-if="props.id"
+            @click="$emit('eliminar-gasto')"
+            >
+                Eliminar Gasto
+            </button>
         </div>
     </div>
 </template>
@@ -212,5 +242,16 @@
         color: var(--blanco);
         font-weight: 700;
         cursor: pointer; 
+    }
+    .btn-eliminar{
+        padding: 1rem;
+        width: 100%;
+        background-color: #ef4444;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--blanco);
+        margin-top: 10rem;
+        border: none;
+        cursor: pointer;
     }
 </style>
