@@ -49,12 +49,14 @@
 
   watch(presupuesto, ()=>{
     localStorage.setItem('presupuesto', presupuesto.value)
+    localStorage.setItem('gastos', gastos.value)
   })
 
   onMounted(()=>{
     const presupuestoStorage = localStorage.getItem('presupuesto')
     if(presupuestoStorage){
       presupuesto.value = Number(presupuestoStorage)
+      disponible.value = Number(presupuestoStorage)
     }
   })
 
