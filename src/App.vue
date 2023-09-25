@@ -6,12 +6,18 @@
   import Modal from './components/Modal.vue'
   import Filtros from './components/Filtros.vue'
   import Gasto  from './components/Gasto.vue'
+  import ModalPresupuesto  from './components/PrespuestoAñadir.vue'
 
   import {generarId} from './helpers'
   import iconoGasto from './assets/img/nuevo-gasto.svg'
+
   
   //    >= States =<
   // Objecto reactivo
+  const modalPresupuesto = reactive({
+    mostrar: false,
+    animar: false
+  })
   const modal = reactive({
     mostrar: false,
     animar: false
@@ -34,6 +40,7 @@
     const totalGastado = gastos.value.reduce((total,gasto) => gasto.cantidad + total,0)
     gastado.value = totalGastado
     disponible.value = presupuesto.value - totalGastado
+    localStorage.setItem('gastos', JSON.stringify(gastos.value))
   },{
     deep:true
   }
@@ -58,6 +65,10 @@
       presupuesto.value = Number(presupuestoStorage)
       disponible.value = Number(presupuestoStorage)
     }
+    const gastosStorgare = localStorage.getItem('gastos')
+    if(gastosStorgare) {
+      gastos.value = JSON.parse(gastosStorgare)
+    }
   })
 
   // Funciones
@@ -65,7 +76,7 @@
     presupuesto.value = cantidad
     disponible.value = cantidad
   }
-
+  
   const mostrarModal = ()=>{
     modal.mostrar = true
     setTimeout(() => {
@@ -74,7 +85,6 @@
   }
 
   const ocultarModal = ()=>{
-
     modal.animar = false
     setTimeout(() => {
       modal.mostrar = false
@@ -131,6 +141,35 @@
     }
     return gastos.value
   })
+
+  const resetApp = ()=>{
+    if(confirm('¿Quiere reiniciar presupuesto y gastos?')){
+      gastos.value = []
+      presupuesto.value = 0
+    }
+  }
+  const sumarPresupuesto = (cantidad)=>{
+
+    presupuesto.value += cantidad
+    disponible.value += cantidad
+    ocultarModalPresupuesto()
+
+
+  }
+  const mostrarModalPresupuesto = ()=>{
+    modalPresupuesto.mostrar = true
+    setTimeout(() => {
+      modalPresupuesto.animar = true
+    }, 300);
+  }
+  const ocultarModalPresupuesto = ()=>{
+    modalPresupuesto.animar = false
+    setTimeout(() => {
+      modalPresupuesto.mostrar = false
+    }, 300);
+  }
+
+
 </script>
 
 <template>
@@ -152,6 +191,9 @@
         :presupuesto="presupuesto"
         :disponible="disponible"
         :gastado="gastado"
+        @reset-app ="resetApp"
+        :modalPresupuesto="modalPresupuesto"
+        @mostrarModalPresupuesto="mostrarModalPresupuesto"
       />
     </div>
     </header>
@@ -173,14 +215,15 @@
           :gasto="gasto"
           @seleccionar-gasto="seleccionarGasto"
         />
-      
       </div>
+
 
       <!-- Abre el modal  -->
       <div class="crear-gasto">
         <img :src="iconoGasto" 
         alt="icono Gasto"
         @click="mostrarModal"
+
         >
       </div>
       <!-- Componente #3 -->
@@ -199,7 +242,12 @@
       v-model:cantidad="gasto.cantidad"
 
       />
-
+      <ModalPresupuesto
+        v-if="modalPresupuesto.mostrar"
+        @sumar-presupuesto="sumarPresupuesto"
+        :modalPresupuesto="modalPresupuesto"
+        @ocultarModalPresupuesto="ocultarModalPresupuesto"
+      />
     </main>
   </div>
 </template>
@@ -263,6 +311,9 @@
     border-radius: 1.2rem;
     padding: 5.2rem;
   }
+  .textos{
+    font-size: 1.3em;
+  }
   .crear-gasto{
     position: fixed; 
     bottom: 5rem;
@@ -284,4 +335,5 @@
     font-weight: 900;
     color: var(--gris-oscuro);
   }
+
 </style>

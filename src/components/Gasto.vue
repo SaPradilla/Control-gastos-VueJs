@@ -100,4 +100,22 @@
         font-weight: 900;
         margin: 0;
     }
+    @media (max-width: 460px){
+        .contenido{
+            gap: 3;
+        }
+        .icono{
+            width: 4rem;
+        }   
+        .nombre{
+            font-weight: 2rem;
+        }
+        .fecha{
+            font-size: 1.5rem;
+
+        } 
+        .cantidad{
+            font-size: 2rem;
+        }
+    }
 </style>
